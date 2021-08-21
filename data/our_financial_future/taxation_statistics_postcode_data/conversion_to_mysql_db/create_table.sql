@@ -50,8 +50,8 @@ CREATE TABLE tax_stats_by_postcode (
   KEY tax_stats_by_postcode_postcode (postcode)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-CREATE TABLE school_leavers_by_postcode (
-  schoolLeaversByPostcodeID int(10) unsigned NOT NULL AUTO_INCREMENT,
+CREATE TABLE school_leavers_by_state_suburb (
+  schoolLeaversByStateSuburbID int(10) unsigned NOT NULL AUTO_INCREMENT,
   vcaaCode varchar(128) NOT NULL,
   schoolName varchar(128) NOT NULL,
   sector varchar(128) NOT NULL,
@@ -66,7 +66,7 @@ CREATE TABLE school_leavers_by_postcode (
   percentNotInEducationEmployed int unsigned NOT NULL,
   percentNotInEducationLookingForWork int unsigned NOT NULL,
   percentNotInEducationOther int unsigned NOT NULL,
-  PRIMARY KEY (schoolLeaversByPostcodeID),
+  PRIMARY KEY (schoolLeaversByStateSuburbID),
   KEY school_leavers_by_postcode_suburb (suburb),
   UNIQUE KEY school_leavers_by_postcode_unique (vcaaCode, schoolName, suburb)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -187,3 +187,21 @@ INSERT INTO `country_state` VALUES (1,'',1),(8,'ACT',1),(5,'NSW',1),(3,'NT',1),(
 UNLOCK TABLES;
 
 
+
+
+
+
+
+
+
+
+ALTER TABLE school_leavers_by_state_suburb ADD COLUMN stateSuburbID int(10) unsigned NOT NULL AFTER schoolLeaversByStateSuburbID;
+
+UPDATE school_leavers_by_state_suburb SET stateSuburbID=(
+   SELECT stateSuburbID
+   FROM state_suburb
+   WHERE suburbName=suburb
+   AND countryStateID=2
+);
+
+ALTER TABLE school_leavers_by_state_suburb ADD FOREIGN KEY (stateSuburbID) REFERENCES state_suburb (stateSuburbID);
