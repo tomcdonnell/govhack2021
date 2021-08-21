@@ -1,5 +1,5 @@
 CREATE TABLE tax_stats_by_postcode (
-  taxStatsByPostcodeID_PK int(11) NOT NULL AUTO_INCREMENT,
+  taxStatsByPostcodeID int(10) unsigned NOT NULL AUTO_INCREMENT,
   taxYear varchar(9) NOT NULL,
   stateAbbrev varchar(8) NOT NULL,
   postcode int unsigned DEFAULT NULL,
@@ -45,17 +45,145 @@ CREATE TABLE tax_stats_by_postcode (
   nIndividualsWithPrivateHealthInsurance int unsigned NOT NULL,
   nIndividualsWithPrivateHealthInsuranceAustGovRebateReceived int unsigned NOT NULL,
   privateHealthInsuranceAustGovRebateReceivedDollars int unsigned NOT NULL,
-  PRIMARY KEY (`taxStatsByPostcodeID_PK`),
-  KEY `tax_stats_by_postcode_stateAbbrev` (`stateAbbrev`),
-  KEY `tax_stats_by_postcode_postcode` (`postcode`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+  PRIMARY KEY (taxStatsByPostcodeID),
+  KEY tax_stats_by_postcode_stateAbbrev (stateAbbrev),
+  KEY tax_stats_by_postcode_postcode (postcode)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE school_leavers_by_postcode (
+  schoolLeaversByPostcodeID int(10) unsigned NOT NULL AUTO_INCREMENT,
+  vcaaCode varchar(128) NOT NULL,
+  schoolName varchar(128) NOT NULL,
+  sector varchar(128) NOT NULL,
+  suburb varchar(128) NOT NULL,
+  nCompletedY12 int unsigned NOT NULL,
+  nOnTrackConsenters int unsigned NOT NULL,
+  nOnTrackRespondents int unsigned NOT NULL,
+  percentInEducationBachelorEnrolled int unsigned NOT NULL,
+  percentInEducationDeferred int unsigned NOT NULL,
+  percentInEducationTafeOrVetEnrolled int unsigned NOT NULL,
+  percentInEducationApprenticeOrTrainee int unsigned NOT NULL,
+  percentNotInEducationEmployed int unsigned NOT NULL,
+  percentNotInEducationLookingForWork int unsigned NOT NULL,
+  percentNotInEducationOther int unsigned NOT NULL,
+  PRIMARY KEY (schoolLeaversByPostcodeID),
+  KEY school_leavers_by_postcode_suburb (suburb),
+  UNIQUE KEY school_leavers_by_postcode_unique (vcaaCode, schoolName, suburb)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
-CREATE TABLE postcode_link_suburb (
-  postcodeLinkSuburbID_PK int(11) NOT NULL AUTO_INCREMENT,
-  suburb varchar(64) NOT NULL,
-  PRIMARY KEY (`postcodeLinkSuburbID_PK`),
-  KEY `tax_stats_by_postcode_stateAbbrev` (`stateAbbrev`),
-  KEY `tax_stats_by_postcode_postcode` (`postcode`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+
+
+UPDATE school_leavers_by_postcode SET nCompletedY12Percentile=ROUND(100 * PERCENT_RANK() OVER (ORDER BY nCompletedY12 ASC));
+
+
+
+
+WITH cte AS (
+   SELECT
+   schoolLeaversByPostcodeID_PK,
+   ROUND(100 * PERCENT_RANK() OVER (ORDER BY nCompletedY12 ASC)) AS nCompletedY12PercentileTemp
+   FROM school_leavers_by_postcode
+)
+UPDATE school_leavers_by_postcode
+SET nCompletedY12Percentile=cte.nCompletedY12PercentileTemp
+FROM cte
+WHERE schoolLeaversByPostcodeID_PK=cte.schoolLeaversByPostcodeID_PK;
+
+
+
+
+
+
+
+
+CREATE TABLE state_suburb (
+  stateSuburbID int(10) unsigned NOT NULL AUTO_INCREMENT,
+  countryStateID int(10) unsigned NOT NULL,
+  suburbName varchar(128) NOT NULL,
+  PRIMARY KEY (stateSuburbID),
+  FOREIGN KEY (countryStateID) REFERENCES country_state (countryStateID)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+INSERT INTO state_suburb (countryStateID, suburbName)
+SELECT DISTINCT countryStateID, suburb
+FROM postcode_link_suburb
+ORDER BY countryStateID ASC, suburb ASC;
+
+
+CREATE TABLE suburb_link_postcode (
+  suburbLinkPostcodeID int(10) unsigned NOT NULL AUTO_INCREMENT,
+  stateSuburbID int(10) unsigned NOT NULL,
+  postcode int(10) unsigned NOT NULL,
+  PRIMARY KEY (suburbLinkPostcodeID),
+  FOREIGN KEY (stateSuburbID) REFERENCES state_suburb (stateSuburbID)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+INSERT INTO suburb_link_postcode (stateSuburbID, postcode)
+SELECT DISTINCT stateSuburbID, postcode
+FROM postcode_link_suburb
+ORDER BY postcode ASC, stateSuburbID ASC;
+
+UPDATE postcode_link_suburb AS pls
+SET pls.stateSuburbID=(
+   SELECT stateSuburbID
+   FROM state_suburb AS ss
+   WHERE ss.countryStateID=pls.countryStateID
+   AND ss.suburbName=pls.suburb
+);
+
+--
+-- Table structure for table `country`
+--
+
+DROP TABLE IF EXISTS `country`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `country` (
+  `countryID` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(32) NOT NULL,
+  PRIMARY KEY (`countryID`),
+  UNIQUE KEY `name` (`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `country`
+--
+
+LOCK TABLES `country` WRITE;
+/*!40000 ALTER TABLE `country` DISABLE KEYS */;
+INSERT INTO `country` VALUES (1,'Australia'),(2,'New Zealand');
+/*!40000 ALTER TABLE `country` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `country_state`
+--
+
+DROP TABLE IF EXISTS `country_state`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `country_state` (
+  `countryStateID` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `stateName` varchar(32) NOT NULL,
+  `countryID` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`countryStateID`),
+  UNIQUE KEY `countryID` (`countryID`,`stateName`),
+  KEY `country_state_countryID` (`countryID`),
+  CONSTRAINT `country_state_countryID` FOREIGN KEY (`countryID`) REFERENCES `country` (`countryID`)
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `country_state`
+--
+
+LOCK TABLES `country_state` WRITE;
+/*!40000 ALTER TABLE `country_state` DISABLE KEYS */;
+INSERT INTO `country_state` VALUES (1,'',1),(8,'ACT',1),(5,'NSW',1),(3,'NT',1),(6,'QLD',1),(4,'SA',1),(11,'TAS',1),(2,'VIC',1),(7,'WA',1),(10,'',2);
+/*!40000 ALTER TABLE `country_state` ENABLE KEYS */;
+UNLOCK TABLES;
+
 

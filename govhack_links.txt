@@ -1,0 +1,21 @@
+IMPORTANT LINKS FOR GOVHACK
+---------------------------
+https://govhack.org/howtocompete/handbook/
+https://hackerspace.govhack.org/challenges
+https://hackerspace.govhack.org/resources/data_portals
+
+
+
+Questions our app will be able to answer:
+ * Which postcodes have highest/lowest income?
+ * Which postcodes have highest/lowest HELP debt?
+ * Which postcodes have highest/lowest investment income?
+ * Which postcodes have highest/lowest salary income?
+
+
+Plan for Sunday:
+
+
+Create page 'School leavers and suburb wealth 2020'
+
+postcode, suburb, percentInEducationBatchelorEnrolled, percentDeferred, percentNotInEducationEmployed, percentLookingForWork
