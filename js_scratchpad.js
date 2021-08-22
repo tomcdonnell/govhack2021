@@ -22,17 +22,31 @@ function _setBackgroundColorsForColumnsWithMinAndMaxValues()
 {
    for (var columnKey in window.maxAndMinValueByColumnKey)
    {
-console.info('columnKey: ', columnKey);
       var minAndMax   = window.maxAndMinValueByColumnKey[columnKey];
-      var columnIndex = $('table.editable-table > thead > tr > th[data-columnKey=' + columnKey + ']');
-      var tds         = $('table.editable-table > tbody.main-tbody > tr').children();
-console.info('tds: ', tds);
 
-      for (var i = 0; i < tds.length; ++i)
+      var thsJq       = $('table.editable-table > thead > tr > th');
+      var columnIndex = 0;
+
+      for (var i = 0; i < thsJq.length; ++i)
       {
-         var tdJq  = $(tds[i]);
-console.info('tdJq: ', tdJq);
-         var tdVal = tdJq.find('div.value-div').html();
+         if ($(thsJq[i]).attr('data-column-key') == columnKey)
+         {
+            columnIndex = i + 1;
+            break;
+         }
+      }
+
+      if (columnIndex === null)
+      {
+         return;
+      }
+
+      var tdsJq = $('table.editable-table > tbody > tr > td:nth-child(' + columnIndex + ')');
+
+      for (var i = 0; i < tdsJq.length; ++i)
+      {
+         var tdJq  = $(tdsJq[i]);
+         var tdVal = tdJq.find('div.value-div').html().replace('$', '').replace(',', '');
 
          tdJq.css('backgroundColor', _getCssColorForRangeValue(minAndMax.min, tdVal, minAndMax.max));
       }
@@ -44,38 +58,17 @@ function _getCssColorForRangeValue(rangeMin, value, rangeMax)
    var midpoint = rangeMin + ((rangeMax - rangeMin) / 2);
 
    // Color scheme from https://www.schemecolor.com/hot-and-cold.php.
-   var initialR = 242; var initialG =  51; var initialB =  59; // Too hot    (red   ).
-   var midR     = 255; var midG     = 221; var midB     =  62; // Just right (yellow).
-   var finalR   =  86; var finalG   = 171; var finalB   = 236; // Too cold   (blue  ).
+   var initialR = 255; var initialG = 221; var initialB =  62; // (yellow).
+   var finalR   =  86; var finalG   = 171; var finalB   = 236; // (blue  ).
 
    if (value < rangeMin) {return 'rgb(' + initialR + ',' + initialG + ',' + initialB + ')';}
    if (value > rangeMax) {return 'rgb(' + finalR   + ',' + finalG   + ',' + finalB   + ')';}
 
    var valueAsFraction = (value - rangeMin) / (rangeMax - rangeMin);
 
-   switch ((valueAsFraction < 0.5)? 'firstHalf': ((valueAsFraction == 0.5)? 'middle': 'lastHalf'))
-   {
-    case 'firstHalf':
-      var r = Math.round(initialR + (midR - initialR) * (valueAsFraction / 0.5), 0);
-      var g = Math.round(initialG + (midG - initialG) * (valueAsFraction / 0.5), 0);
-      var b = Math.round(initialB + (midB - initialB) * (valueAsFraction / 0.5), 0);
-      break;
-
-    case 'middle':
-      var r = midR;
-      var g = midG;
-      var b = midB;
-      break;
-
-    case 'lastHalf':
-      var r = Math.round(midR + (finalR - midR) * ((valueAsFraction - 0.5) / 0.5), 0);
-      var g = Math.round(midG + (finalG - midG) * ((valueAsFraction - 0.5) / 0.5), 0);
-      var b = Math.round(midB + (finalB - midB) * ((valueAsFraction - 0.5) / 0.5), 0);
-      break;
-
-    default:
-      throw new Exception('Impossible case.');
-   }
+   var r = Math.round(initialR + (finalR - initialR) * (valueAsFraction / 0.5), 0);
+   var g = Math.round(initialG + (finalG - initialG) * (valueAsFraction / 0.5), 0);
+   var b = Math.round(initialB + (finalB - initialB) * (valueAsFraction / 0.5), 0);
 
    return 'rgb(' + r + ',' + g + ',' + b + ')';
 }
