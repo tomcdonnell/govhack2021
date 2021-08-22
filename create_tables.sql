@@ -205,3 +205,31 @@ UPDATE school_leavers_by_state_suburb SET stateSuburbID=(
 );
 
 ALTER TABLE school_leavers_by_state_suburb ADD FOREIGN KEY (stateSuburbID) REFERENCES state_suburb (stateSuburbID);
+
+
+
+
+
+
+
+
+
+
+
+INSERT INTO school_leavers_by_state_suburb_copy SELECT * FROM school_leavers_by_state_suburb;
+
+ALTER TABLE school_leavers_by_state_suburb ADD COLUMN percentInEducationBachelorEnrolledPercentile int unsigned NOT NULL AFTER percentInEducationBachelorEnrolled;
+
+UPDATE school_leavers_by_state_suburb SET percentInEducationBachelorEnrolledPercentile=(
+   PERCENT_RANK() OVER (
+      PARTITION BY school_leavers_by_state_suburb_copy.percentInEducationBachelorEnrolled
+      ORDER BY     school_leavers_by_state_suburb_copy.percentInEducationBachelorEnrolled ASC
+   )
+);
+
+UPDATE school_leavers_by_state_suburb SET percentInEducationBachelorEnrolledPercentile=(
+   PERCENT_RANK() OVER (
+      PARTITION BY school_leavers_by_state_suburb_copy.percentInEducationBachelorEnrolled
+      ORDER BY     school_leavers_by_state_suburb_copy.percentInEducationBachelorEnrolled ASC
+   )
+);
